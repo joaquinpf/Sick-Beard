@@ -1018,7 +1018,9 @@ class ConfigProviders:
                       thepiratebay_trusted=None, thepiratebay_proxy=None, thepiratebay_proxy_url=None,
                       dtt_norar = None, dtt_single = None, 
                       torrentleech_username = None, torrentleech_password = None,
-                      torrentday_username = None, torrentday_password = None, torrentday_rsshash = None, torrentday_uid = None, 
+                      torrentday_username = None, torrentday_password = None, torrentday_rsshash = None, torrentday_uid = None,
+                      sceneaccess_username = None, sceneaccess_password = None, sceneaccess_rsshash = None,
+                      iptorrents_username = None, iptorrents_password = None,iptorrents_uid = None, iptorrents_rsshash = None,
                       torrentz_verified = None,
                       provider_order=None):
 
@@ -1098,6 +1100,10 @@ class ConfigProviders:
                 sickbeard.TORRENTLEECH = curEnabled
             elif curProvider == 'torrentday':
                 sickbeard.TORRENTDAY = curEnabled
+            elif curProvider == 'sceneaccess':
+                sickbeard.SCENEACCESS = curEnabled
+            elif curProvider == 'iptorrents':
+                sickbeard.IPTORRENTS = curEnabled
             elif curProvider == 'publichd':
                 sickbeard.PUBLICHD = curEnabled
             elif curProvider == 'btn':
@@ -1147,7 +1153,16 @@ class ConfigProviders:
         sickbeard.TORRENTDAY_PASSWORD = torrentday_password
         sickbeard.TORRENTDAY_RSSHASH = torrentday_rsshash
         sickbeard.TORRENTDAY_UID = torrentday_uid
-            
+        
+        sickbeard.SCENEACCESS_USERNAME = sceneaccess_username.strip()
+        sickbeard.SCENEACCESS_PASSWORD = sceneaccess_password.strip()
+        sickbeard.SCENEACCESS_RSSHASH = sceneaccess_rsshash.strip()
+        
+        sickbeard.IPTORRENTS_USERNAME = iptorrents_username.strip()
+        sickbeard.IPTORRENTS_PASSWORD = iptorrents_password.strip()
+        sickbeard.IPTORRENTS_UID = iptorrents_uid.strip()
+        sickbeard.IPTORRENTS_RSSHASH = iptorrents_rsshash.strip()
+        
         if torrentz_verified == "on":
             torrentz_verified = 1
         else:
@@ -2773,6 +2788,7 @@ class Home:
 
         return json.dumps({'result': 'failure'})
 
+
 class UI:
 
     @cherrypy.expose
@@ -2788,7 +2804,7 @@ class UI:
         messages = {}
         cur_notification_num = 1
         for cur_notification in ui.notifications.get_notifications():
-            messages['notification-'+str(cur_notification_num)] = {'title': cur_notification.title,
+            messages['notification-' + str(cur_notification_num)] = {'title': cur_notification.title,
                                                                    'message': cur_notification.message,
                                                                    'type': cur_notification.type}
             cur_notification_num += 1
@@ -2797,6 +2813,12 @@ class UI:
 
 
 class WebInterface:
+
+    @cherrypy.expose
+    def robots_txt(self):
+        """ Keep web crawlers out """
+        cherrypy.response.headers['Content-Type'] = 'text/plain'
+        return 'User-agent: *\nDisallow: /\n'
 
     @cherrypy.expose
     def index(self):
