@@ -290,11 +290,11 @@ class GitUpdateManager(UpdateManager):
         branch_info = self._run_git('symbolic-ref -q HEAD')
 
         if not branch_info or not branch_info[0]:
-            return 'torrent_1080_subtitles'
+            return 'development'
 
         branch = branch_info[0].strip().replace('refs/heads/', '', 1)
 
-        return branch or 'torrent_1080_subtitles'
+        return branch or 'development'
 
 
     def _check_github_for_update(self):
@@ -311,8 +311,8 @@ class GitUpdateManager(UpdateManager):
         gh = github.GitHub()
 
         # find newest commit
-        logger.log(u"Checking updates on junalmeida/Sick-Beard/" + self.branch)
-        for curCommit in gh.commits('junalmeida', 'Sick-Beard', self.branch):
+        logger.log(u"Checking updates on joaquinpf/Sick-Beard/" + self.branch)
+        for curCommit in gh.commits('joaquinpf', 'Sick-Beard', self.branch):
             if not self._newest_commit_hash:
                 self._newest_commit_hash = curCommit['sha']
                 if not self._cur_commit_hash:
@@ -340,9 +340,9 @@ class GitUpdateManager(UpdateManager):
             return
 
         if self._newest_commit_hash:
-            url = 'http://github.com/junalmeida/Sick-Beard/compare/'+self._cur_commit_hash+'...'+self._newest_commit_hash
+            url = 'http://github.com/joaquinpf/Sick-Beard/compare/'+self._cur_commit_hash+'...'+self._newest_commit_hash
         else:
-            url = 'http://github.com/junalmeida/Sick-Beard/commits/'
+            url = 'http://github.com/joaquinpf/Sick-Beard/commits/'
 
         new_str = 'There is a <a href="'+url+'" onclick="window.open(this.href); return false;">newer version available</a> ('+message+')'
         new_str += "&mdash; <a href=\""+self.get_update_url()+"\">Update Now</a>"
@@ -448,7 +448,7 @@ class SourceUpdateManager(GitUpdateManager):
         Downloads the latest source tarball from github and installs it over the existing version.
         """
 
-        tar_download_url = 'https://github.com/junalmeida/Sick-Beard/tarball/'+version.SICKBEARD_VERSION
+        tar_download_url = 'https://github.com/joaquinpf/Sick-Beard/tarball/'+version.SICKBEARD_VERSION
         sb_update_dir = os.path.join(sickbeard.PROG_DIR, 'sb-update')
         version_path = os.path.join(sickbeard.PROG_DIR, 'version.txt')
 
