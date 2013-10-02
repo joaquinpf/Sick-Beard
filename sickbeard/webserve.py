@@ -32,7 +32,8 @@ import cherrypy.lib
 
 import sickbeard
 
-from sickbeard import config, sab, utorrent, transmission, downloadstation
+from sickbeard import config, sab
+from sickbeard.downloaders import utorrent, transmission, downloadstation, deluge
 from sickbeard import history, notifiers, processTV
 from sickbeard import ui
 from sickbeard import logger, helpers, exceptions, classes, db
@@ -790,6 +791,7 @@ class ConfigSearch:
         sickbeard.USE_NZBS = 1 if postData.get('use_nzbs') == "on" else 0
         sickbeard.TORRENT_PAUSED = 1 if postData.get('torrent_paused') == "on" else 0
         sickbeard.DOWLOAD_PROPERS = 1 if postData.get('download_propers') == "on" else 0
+        sickbeard.PREFER_EPISODE_RELEASES = 1 if postData.get('prefer_episode_releases') == "on" else 0
         sickbeard.USENET_RETENTION = int(postData.get('usenet_retention', 200))
 
         # this regex will match http or https urls or just a domain/address
@@ -1015,13 +1017,15 @@ class ConfigProviders:
                       torrentleech_key=None,
                       btn_api_key=None,
                       newzbin_username=None, newzbin_password=None,
-                      thepiratebay_trusted=None, thepiratebay_proxy=None, thepiratebay_proxy_url=None,
+                      thepiratebay_trusted = None, thepiratebay_proxy = None, thepiratebay_proxy_url = None,thepiratebay_url_override = None, thepiratebay_url_override_enable = None,
                       dtt_norar = None, dtt_single = None, 
                       torrentleech_username = None, torrentleech_password = None,
                       torrentday_username = None, torrentday_password = None, torrentday_rsshash = None, torrentday_uid = None,
                       sceneaccess_username = None, sceneaccess_password = None, sceneaccess_rsshash = None,
                       iptorrents_username = None, iptorrents_password = None,iptorrents_uid = None, iptorrents_rsshash = None,
                       bithdtv_username = None, bithdtv_password = None,
+                      fucklimits_username = None, fucklimits_password = None,
+                      torrentshack_username = None, torrentshack_password = None, torrentshack_uid = None, torrentshack_auth = None, torrentshack_pass_key = None, torrentshack_auth_key = None,
                       torrentz_verified = None,
                       provider_order=None):
 
@@ -1107,6 +1111,12 @@ class ConfigProviders:
                 sickbeard.IPTORRENTS = curEnabled
             elif curProvider == 'bithdtv':
                 sickbeard.BITHDTV = curEnabled
+            elif curProvider == 'fucklimits':
+                sickbeard.FUCKLIMITS = curEnabled
+            elif curProvider == 'btdigg':
+                sickbeard.BTDIGG = curEnabled
+            elif curProvider == 'torrentshack':
+                sickbeard.TORRENTSHACK = curEnabled
             elif curProvider == 'publichd':
                 sickbeard.PUBLICHD = curEnabled
             elif curProvider == 'btn':
@@ -1133,8 +1143,18 @@ class ConfigProviders:
             thepiratebay_proxy = 0
             sickbeard.THEPIRATEBAY_PROXY_URL = ""
             
-        sickbeard.THEPIRATEBAY_PROXY = thepiratebay_proxy    
+        sickbeard.THEPIRATEBAY_PROXY = thepiratebay_proxy
         
+        if thepiratebay_url_override_enable == "on":
+            thepiratebay_url_override_enable = 1
+            thepiratebay_url_override = thepiratebay_url_override.strip()
+            if thepiratebay_url_override:
+                thepiratebay_url_override = thepiratebay_url_override if thepiratebay_url_override.endswith('/') else thepiratebay_url_override + '/'
+            sickbeard.THEPIRATEBAY_URL_OVERRIDE = thepiratebay_url_override
+        else:
+            thepiratebay_url_override_enable = 0
+            sickbeard.THEPIRATEBAY_URL_OVERRIDE = ""
+            
         if dtt_norar == "on":
             dtt_norar = 1
         else:
@@ -1168,6 +1188,16 @@ class ConfigProviders:
         
         sickbeard.BITHDTV_USERNAME = bithdtv_username.strip()
         sickbeard.BITHDTV_PASSWORD = bithdtv_password.strip()
+        
+        sickbeard.FUCKLIMITS_USERNAME = fucklimits_username.strip()
+        sickbeard.FUCKLIMITS_PASSWORD = fucklimits_password.strip()
+        
+        sickbeard.TORRENTSHACK_USERNAME = torrentshack_username.strip()
+        sickbeard.TORRENTSHACK_PASSWORD = torrentshack_password.strip()
+        sickbeard.TORRENTSHACK_UID = torrentshack_uid.strip()
+        sickbeard.TORRENTSHACK_AUTH = torrentshack_auth.strip()
+        sickbeard.TORRENTSHACK_PASS_KEY = torrentshack_pass_key.strip()
+        sickbeard.TORRENTSHACK_AUTH_KEY = torrentshack_auth_key.strip()
         
         if torrentz_verified == "on":
             torrentz_verified = 1
@@ -2070,6 +2100,8 @@ class Home:
             connection, accesMsg = transmission.testAuthentication(host, username, password)
         elif torrent_method == 'downloadstation':
             connection, accesMsg = downloadstation.testAuthentication(host, username, password)
+        elif torrent_method == 'deluge':
+            connection, accesMsg = deluge.testAuthentication(host, username, password)
 
         return accesMsg   
     

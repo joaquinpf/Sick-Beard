@@ -26,7 +26,9 @@ import os
 import exceptions
 import sickbeard
 import generic
+import json
 
+from operator import itemgetter
 from xml.sax.saxutils import escape
 from sickbeard.common import Quality
 from sickbeard import logger
@@ -37,26 +39,23 @@ from sickbeard import db
 from sickbeard.common import Overview
 from sickbeard.exceptions import ex
 
-class BITHDTVProvider(generic.TorrentProvider):
+class BTDIGGProvider(generic.TorrentProvider):
     ###################################################################################################
     def __init__(self):
-        generic.TorrentProvider.__init__(self, "BITHDTV")
+        generic.TorrentProvider.__init__(self, "BTDigg")
         self.supportsBacklog = True
-        self.cache = BITHDTVCache(self)     
-        self.url = 'http://www.bit-hdtv.com/'
-        self.token = None
-        self.search_results = []
-        logger.log('[BIT-HDTV] Loading BIT-HDTV')
+        self.url = 'https://api.btdigg.org/'
+        logger.log('[BTDigg] Loading BTDigg')
     
     ###################################################################################################
     
     def isEnabled(self):
-        return sickbeard.BITHDTV
+        return sickbeard.BTDIGG
     
     ###################################################################################################
     
     def imageName(self):
-        return 'bithdtv.png'
+        return 'btdigg.png'
     
     ###################################################################################################
 
@@ -126,124 +125,64 @@ class BITHDTVProvider(generic.TorrentProvider):
     ###################################################################################################
 
     def _doSearch(self, search_params, show=None):
-        self.search_results = []
-        logger.log("[BIT-HDTV] Performing Search: {0}".format(search_params))
-        search_params = search_params.replace(" ","+")
-        
-        logger.log("[BIT-HDTV] Searching TV Section")
-        self.parseResults(self.url + "torrents.php?search=" + urllib.quote(search_params) + "&cat=10")
-        
-        logger.log("[BIT-HDTV] Searching TV Pack Section")
-        self.parseResults(self.url + "torrents.php?search=" + urllib.quote(search_params) + "&cat=12")
-        
-        if len(self.search_results):
-            logger.log("[BIT-HDTV] parseResults() Some results found.")
-        else:
-            logger.log("[BIT-HDTV] parseResults() No results found.")
-        return self.search_results
+        search_params = search_params.replace('+',' ')
+        logger.log("[BTDigg] Performing Search: {0}".format(search_params))
+        searchUrl = self.url + "api/private-341ada3245790954/s02?q=" + search_params + "&p=0&order=0"
+        return self.parseResults(searchUrl)
     
     ################################################################################################### 
 
     def _get_title_and_url(self, item):
         return item
-
+    
     ###################################################################################################
     
     def parseResults(self, searchUrl):
         data = self.getURL(searchUrl)
+        results=[]
+        tmp_results=[]
         if data:
-            logger.log("[BIT-HDTV] parseResults() URL: " + searchUrl, logger.DEBUG)
-            for torrent in re.compile("<td class=detail align=left><a title=\"(?P<title>.*?)\" href.*?<font class=small></font><a href=\"/(?P<url>.*?)\.torrent\"></a>",re.MULTILINE|re.DOTALL).finditer(data):
-                item = (torrent.group('title').replace('.',' ').decode('utf-8', 'ignore'), self.url + torrent.group('url') + ".torrent")
-                self.search_results.append(item)
-                logger.log("[BIT-HDTV] parseResults() Title: " + torrent.group('title').decode('utf-8', 'ignore'), logger.DEBUG)
+            logger.log("[BTDigg] parseResults() URL: " + searchUrl, logger.DEBUG)
+            jdata = json.load(data)
+            for torrent in sorted(jdata, key=itemgetter('reqs'), reverse=True):
+                found=0
+                
+                if torrent['ff'] > 0.0:
+                    continue
+                               
+                torrent['name'] = torrent['name'].replace('|', '').replace('.',' ')
+                
+                item = (torrent['name'],torrent['magnet'], torrent['reqs'])                
+                for r in tmp_results:
+                    if r[0].lower() == torrent['name'].lower():
+                        found=1
+                        if r[2] < torrent['reqs']:
+                            tmp_results[tmp_results.index(r)]=item
+                            
+                if not found:
+                    tmp_results.append(item)
+                logger.log("[BTDigg] parseResults() Title: " + torrent['name'], logger.DEBUG)
+            
+            for r in tmp_results:
+                item=(r[0],r[1])
+                results.append(item)
         else:
-            logger.log("[BIT-HDTV] parseResults() Error no data returned!!")
-        return self.search_results
+            logger.log("[BTDigg] parseResults() Error no data returned!!")
+        return results
     
     ###################################################################################################
     
     def getURL(self, url, headers=None):
         response = None
-        if self.doLogin():        
-            if not headers:
-                headers = []
-            headers.append(('Cookie', self.token))          
-            try:
-                response = helpers.getURL(url, headers)
-                if response.count("<title>Login</title>") > 0:
-                    logger.log("[BIT-HDTV] getURL() Session expired loading " + self.name + " URL: " + url +" Let's login again.")
-                    self.token = None
-                    self.getURL(url, headers)
-            except (urllib2.HTTPError, IOError, Exception), e:
-                self.token = None
-                logger.log("[BIT-HDTV] getURL() Error loading " + self.name + " URL: " + str(sys.exc_info()) + " - " + ex(e), logger.ERROR)
-                return None
+        logger.log("[BTDigg] Requesting - " + url)
+        try:
+            #response = helpers.getURL(url, headers)
+            response = urllib.urlopen(url)
+        except (urllib2.HTTPError, IOError, Exception), e:
+            logger.log("[BTDigg] getURL() Error loading " + self.name + " URL: " + str(sys.exc_info()) + " - " + ex(e), logger.ERROR)
+            return None
         return response
     
     ###################################################################################################
-    
-    def doLogin(self):
-        if not self.token:
-            login_params  = {
-                'username': sickbeard.BITHDTV_USERNAME,
-                'password': sickbeard.BITHDTV_PASSWORD,
-                'login': 'submit'
-            }
-            result = None
-            
-            cookies = cookielib.CookieJar()
-            opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cookies))
-            try:
-                logger.log("[BIT-HDTV] Attempting to Login")
-                urllib2.install_opener(opener)
-                response = opener.open(self.url + "takelogin.php", urllib.urlencode(login_params))
-                result = response.read()
-            except (urllib2.HTTPError, IOError, Exception), e:
-                raise Exception("[BIT-HDTV] doLogin() Error: " + str(e.code) + " " + str(e.reason), logger.ERROR)
-                return None
-            if re.search("Password not correct|<title>Login</title>",result):
-                response.close()
-                logger.log("[BIT-HDTV] Failed Login")
-                raise Exception("Invalid username or password for " + self.name + ". Check your settings.")
-                return None
-            self.token = ""
-            for cookie in cookies:
-                if not cookie.value == "deleted":
-                    self.token += str(cookie.name) + "=" + str(cookie.value) + ";"
-            logger.log("[BIT-HDTV] Successfully logged user '%s' in." % sickbeard.BITHDTV_USERNAME)
-            response.close()
-        return True
-    
-    ###################################################################################################
-    
-class BITHDTVCache(tvcache.TVCache):
-    
-    ###################################################################################################
-    
-    def __init__(self, provider):
-        tvcache.TVCache.__init__(self, provider)
-        self.minTime = 15
 
-    ###################################################################################################
-        
-    def _getRSSData(self):
-        provider.parseResults(provider.url + "torrents.php?cat=10")
-        provider.parseResults(provider.url + "torrents.php?cat=12")
-        
-        xml =   "<rss xmlns:atom=\"http://www.w3.org/2005/Atom\" version=\"2.0\">" + \
-                "<channel>" + \
-                "<title>BIT-HDTV</title>" + \
-                "<link>" + provider.url + "</link>" + \
-                "<description>torrent search</description>" + \
-                "<language>en-us</language>" + \
-                "<atom:link href=\"" + provider.url + "\" rel=\"self\" type=\"application/rss+xml\"/>"
-            
-        for title, url in provider.search_results:
-            xml += "<item>" + "<title>" + escape(title) + "</title>" +  "<link>" + urllib.quote(url,'/,:?') + "</link>" + "</item>"
-        xml += "</channel> </rss>"
-        return xml
-        
-    ###################################################################################################    
-        
-provider = BITHDTVProvider()   
+provider = BTDIGGProvider()

@@ -31,9 +31,7 @@ from sickbeard import nzbget
 from sickbeard import history
 from sickbeard import notifiers
 from sickbeard import nzbSplitter
-from sickbeard import utorrent
-from sickbeard import transmission
-from sickbeard import downloadstation
+from sickbeard.downloaders import utorrent, transmission, downloadstation, deluge
 from sickbeard import ui
 from sickbeard import encodingKludge as ek
 from sickbeard import providers
@@ -144,6 +142,8 @@ def snatchEpisode(result, endStatus=SNATCHED):
             dlResult = transmission.sendTORRENT(result)
         elif sickbeard.TORRENT_METHOD == "downloadstation":
             dlResult = downloadstation.sendDownload(result)
+        elif sickbeard.TORRENT_METHOD == "deluge":
+            dlResult = deluge.sendTORRENT(result)
     else:
         logger.log(u"Unknown result type, unable to download it", logger.ERROR)
         dlResult = False
@@ -239,7 +239,7 @@ def pickBestResult(results, quality_list=None):
         if not bestResult or bestResult.quality < cur_result.quality and cur_result.quality != Quality.UNKNOWN:
             bestResult = cur_result
         elif bestResult.quality == cur_result.quality:
-            if "proper" in cur_result.name.lower() or "repack" in cur_result.name.lower():
+            if ("proper" not in bestResult.name.lower() and "repack" not in bestResult.name.lower()) and ("proper" in cur_result.name.lower() or "repack" in cur_result.name.lower()):
                 bestResult = cur_result
             elif "internal" in bestResult.name.lower() and "internal" not in cur_result.name.lower():
                 bestResult = cur_result
@@ -386,6 +386,9 @@ def findSeason(show, season):
     bestSeasonNZB = None
     if SEASON_RESULT in foundResults:
         bestSeasonNZB = pickBestResult(foundResults[SEASON_RESULT], anyQualities+bestQualities)
+        
+    if bestSeasonNZB and bestSeasonNZB.provider.providerType == GenericProvider.TORRENT and sickbeard.PREFER_EPISODE_RELEASES:
+        bestSeasonNZB = None
 
     highest_quality_overall = 0
     for cur_season in foundResults:
@@ -414,8 +417,12 @@ def findSeason(show, season):
             else:
                 anyWanted = True
 
-        # if we need every ep in the season and there's nothing better then just download this and be done with it
-        if allWanted and bestSeasonNZB.quality == highest_quality_overall:
+        # if we need every ep in the season check if single episode releases should be preferred over season releases (missing single episode releases will be picked individually from season release)
+        preferSingleEpisodesOverSeasonReleases = sickbeard.PREFER_EPISODE_RELEASES
+        logger.log(u"Prefer single episodes over season releases: "+str(preferSingleEpisodesOverSeasonReleases), logger.DEBUG)
+
+        # if we need every ep in the season and there's nothing better then just download this and be done with it (unless single episodes are preferred)
+        if allWanted and bestSeasonNZB.quality == highest_quality_overall and not preferSingleEpisodesOverSeasonReleases:
             logger.log(u"Every ep in this season is needed, downloading the whole NZB "+bestSeasonNZB.name)
             epObjs = []
             for curEpNum in allEps:
