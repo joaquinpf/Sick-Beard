@@ -17,11 +17,10 @@
 # along with Sick Beard.  If not, see <http://www.gnu.org/licenses/>.
 
 __all__ = ['ezrss',
+           'hdbits',
            'tvtorrents',
-           'nzbsrus',
            'womble',
            'btn',
-           'nzbx',
            'omgwtfnzbs',
            'kickass',
            'torrentz',

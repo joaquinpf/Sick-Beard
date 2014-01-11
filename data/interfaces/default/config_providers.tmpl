@@ -62,7 +62,7 @@
                             #set $curName = $curProvider.getID()
                           <li class="ui-state-default" id="$curName">
                             <input type="checkbox" id="enable_$curName" class="checkbox provider_enabler" #if $curProvider.isEnabled() then "checked=\"checked\"" else ""#/>
-                            <a href="$curProvider.url" class="imgLink" target="_new"><img src="$sbRoot/images/providers/$curProvider.imageName()" alt="" title="$curProvider.name" width="16" height="16" /></a>
+                            <a href="$curProvider.url" class="imgLink" rel="noreferrer" onclick="window.open('${sickbeard.ANON_REDIRECT}' + this.href, '_blank'); return false;"><img src="$sbRoot/images/providers/$curProvider.imageName()" alt="" title="$curProvider.name" width="16" height="16" /></a>
                             $curProvider.name
                             #if not $curProvider.supportsBacklog then "*" else ""#
                             #if $curProvider.name == "EZRSS" or $curProvider.name == "ThePirateBay" or $curProvider.name == "DailyTvTorrents" then "**" else ""#
@@ -87,7 +87,7 @@
                                 <span class="component-title jumbo">Configure Provider:</span>
                                 <span class="component-desc">
                                     #set $provider_config_list = []
-                                    #for $cur_provider in ("nzbs_r_us", "tvtorrents", "btn", "thepiratebay","dailytvtorrents", "torrentz", "torrentleech", "torrentday", "sceneaccess", "iptorrents", "bithdtv", "fucklimits", "torrentshack"):
+                                    #for $cur_provider in ("btn", "hdbits", "omgwtfnzbs", "tvtorrents", "torrentleech", "thepiratebay","dailytvtorrents", "torrentz", "torrentday", "sceneaccess", "iptorrents", "bithdtv", "fucklimits", "torrentshack"):
                                         #set $cur_provider_obj = $sickbeard.providers.getProviderClass($cur_provider)
                                         #if $cur_provider_obj.providerType == $GenericProvider.NZB and not $sickbeard.USE_NZBS:
                                             #continue
@@ -128,47 +128,61 @@
                         </div>
                     </div><!-- /${curNewznabProvider.getID()}Div //-->
 #end for
-
-                    <div class="providerDiv" id="nzbs_r_usDiv">
-                        <div class="field-pair">
-                            <label class="clearfix">
-                                <span class="component-title">NZBs'R'US User ID</span>
-                                <input class="component-desc" type="text" name="nzbs_r_us_uid" value="$sickbeard.NZBSRUS_UID" size="10" />
-                            </label>
-                        </div>
-                        <div class="field-pair">
-                            <label class="clearfix">
-                                <span class="component-title">NZBs'R'US API Key</span>
-                                <input class="component-desc" type="text" name="nzbs_r_us_hash" value="$sickbeard.NZBSRUS_HASH" size="40" />
-                            </label>
-                        </div>
-                    </div><!-- /nzbs_r_usDiv //-->
-                    
                     <div class="providerDiv" id="omgwtfnzbsDiv">
                         <div class="field-pair">
                             <label class="clearfix">
-                                <span class="component-title">omgwtfnzbs User ID</span>
-                                <input class="component-desc" type="text" name="omgwtfnzbs_uid" value="$sickbeard.OMGWTFNZBS_UID" size="10" />
+                                <span class="component-title">omgwtfnzbs User Name</span>
+                                <input class="component-desc" type="text" name="omgwtfnzbs_username" value="$sickbeard.OMGWTFNZBS_USERNAME" size="10" />
                             </label>
                         </div>
                         <div class="field-pair">
                             <label class="clearfix">
                                 <span class="component-title">omgwtfnzbs API Key</span>
-                                <input class="component-desc" type="text" name="omgwtfnzbs_key" value="$sickbeard.OMGWTFNZBS_KEY" size="40" />
+                                <input class="component-desc" type="text" name="omgwtfnzbs_apikey" value="$sickbeard.OMGWTFNZBS_APIKEY" size="40" />
                             </label>
                         </div>
                     </div><!-- /omgwtfnzbsDiv //-->
+                    
+                    <div class="providerDiv" id="bithdtvDiv">
+                        <div class="field-pair">
+                            <label class="clearfix">
+                                <span class="component-title">Username:</span>
+                                <input class="component-desc" type="text" name="bithdtv_username" value="$sickbeard.BITHDTV_USERNAME" size="40" />
+                            </label>
+                        </div>
+                        <div class="field-pair">
+                            <label class="clearfix">
+                                <span class="component-title">Password:</span>
+                                <input class="component-desc" type="password" name="bithdtv_password" value="$sickbeard.BITHDTV_PASSWORD" size="40" />
+                            </label>
+                        </div>
+                    </div><!-- /bithdtvDiv //-->
+                    
+                    <div class="providerDiv" id="hdbitsDiv">
+                        <div class="field-pair">
+                            <label class="clearfix">
+                                <span class="component-title">HDBits Username</span>
+                                <input class="component-desc" type="text" name="hdbits_username" value="$sickbeard.HDBITS_USERNAME" size="40" />
+                            </label>
+                        </div>
+                        <div class="field-pair">
+                            <label class="clearfix">
+                                <span class="component-title">HDBits Passkey</span>
+                                <input class="component-desc" type="text" name="hdbits_passkey" value="$sickbeard.HDBITS_PASSKEY" size="40" />
+                            </label>
+                        </div>
+                    </div><!-- /hdbitsDiv //-->
 
                     <div class="providerDiv" id="tvtorrentsDiv">
                         <div class="field-pair">
                             <label class="clearfix">
-                                <span class="component-title">TvTorrents Digest:</span>
+                                <span class="component-title">TvTorrents Digest</span>
                                 <input class="component-desc" type="text" name="tvtorrents_digest" value="$sickbeard.TVTORRENTS_DIGEST" size="40" />
                             </label>
                         </div>
                         <div class="field-pair">
                             <label class="clearfix">
-                                <span class="component-title">TvTorrents Hash:</span>
+                                <span class="component-title">TvTorrents Hash</span>
                                 <input class="component-desc" type="text" name="tvtorrents_hash" value="$sickbeard.TVTORRENTS_HASH" size="40" />
                             </label>
                         </div>
@@ -218,12 +232,12 @@
                                 <span class="component-desc">Download torrent only from trusted uploaders?</span>
                             </label>
                         </div>
-		    </div><!-- /thepiratebayDiv //-->
+                    </div><!-- /thepiratebayDiv //-->
                      
                     <div class="providerDiv" id="btnDiv">
                         <div class="field-pair">
                             <label class="clearfix">
-                                <span class="component-title">BTN API Key:</span>
+                                <span class="component-title">BTN API Key</span>
                                 <input class="component-desc" type="text" name="btn_api_key" value="$sickbeard.BTN_API_KEY" size="40" />
                             </label>
                         </div>
@@ -244,7 +258,7 @@
                                 <span class="component-desc">Download only single file release?</span>
                             </label>
                         </div>
-		    </div><!-- /dailytvtorrentsDiv //-->
+                    </div><!-- /dailytvtorrentsDiv //-->
 
                     <div class="providerDiv" id="torrentzDiv">
                         <div class="field-pair">
@@ -338,20 +352,6 @@
                         </div>
                     </div><!-- /iptorrentsDiv //-->
                     
-                    <div class="providerDiv" id="bithdtvDiv">
-                        <div class="field-pair">
-                            <label class="clearfix">
-                                <span class="component-title">Username:</span>
-                                <input class="component-desc" type="text" name="bithdtv_username" value="$sickbeard.BITHDTV_USERNAME" size="40" />
-                            </label>
-                        </div>
-                        <div class="field-pair">
-                            <label class="clearfix">
-                                <span class="component-title">Password:</span>
-                                <input class="component-desc" type="password" name="bithdtv_password" value="$sickbeard.BITHDTV_PASSWORD" size="40" />
-                            </label>
-                        </div>
-                    </div><!-- /bithdtvDiv //-->
                     
                     <div class="providerDiv" id="fucklimitsDiv">
                         <div class="field-pair">
@@ -408,7 +408,7 @@
                         <div class="field-pair">
                             <span class="component-title"><i>Note: options with (*) are optional, these variables can gathered from </i><a href="http://torrentshack.net/rss.php" target="_blank">http://torrentshack.net/rss.php</a> and clicking on a link</span>
                         </div>
-                    </div><!-- /iptorrentsDiv //-->
+                    </div><!-- /torrentshackDiv //-->
 <!-- end div for editing providers -->
             
                     </fieldset>
